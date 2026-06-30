@@ -29,7 +29,7 @@ export function norm(v: unknown): string {
   return String(v ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-/** Trim to a string or null (empty → null). */
+/** Trim to a string or null (empty -> null). */
 export function str(raw: unknown): string | null {
   if (raw === null || raw === undefined) return null;
   const s = String(raw).trim();
@@ -42,7 +42,6 @@ export function parseNumber(raw: unknown): number | null {
   if (typeof raw === 'number') return Number.isNaN(raw) ? null : raw;
   let s = String(raw).trim();
   if (s === '' || s === '-' || s === '*') return null;
-  // (1,234.00) → -1234.00
   const paren = /^\((.*)\)$/.exec(s);
   if (paren) s = '-' + paren[1];
   s = s.replace(/,/g, '').replace(/[$%]/g, '').trim();
@@ -50,7 +49,12 @@ export function parseNumber(raw: unknown): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-/** Parse a date cell (xlsx serial or string) to ISO YYYY-MM-DD, or null. */
+const MONTHS: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+};
+
+/** Parse a date cell (xlsx serial, "DD-Mon-YY", or other string) to ISO, or null. */
 export function parseDate(raw: unknown): string | null {
   if (raw === null || raw === undefined || raw === '') return null;
   if (typeof raw === 'number') {
@@ -60,6 +64,14 @@ export function parseDate(raw: unknown): string | null {
   }
   const s = String(raw).trim();
   if (!s) return null;
+  const m = /^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/.exec(s);
+  if (m) {
+    const day = Number(m[1]);
+    const mon = MONTHS[m[2].toLowerCase()];
+    let yr = Number(m[3]);
+    if (yr < 100) yr += 2000;
+    if (mon) return `${yr}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
