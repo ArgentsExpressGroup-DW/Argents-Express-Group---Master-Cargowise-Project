@@ -16,8 +16,10 @@ ALTER TABLE staging.stg_wip_accrued_costs
 ALTER TABLE staging.stg_wip_accrued_costs
   DROP CONSTRAINT IF EXISTS uq_stg_wip_costs_job_ref;
 
--- De-dupe guard before adding the new key (in case rows already exist).
--- (No-op on an empty table.)
+-- job/local_ref are no longer the key and can be blank on some charge lines.
+ALTER TABLE staging.stg_wip_accrued_costs ALTER COLUMN job DROP NOT NULL;
+ALTER TABLE staging.stg_wip_accrued_costs ALTER COLUMN local_ref DROP NOT NULL;
+
 ALTER TABLE staging.stg_wip_accrued_costs
   ADD CONSTRAINT uq_stg_wip_line UNIQUE (report_date, line_no);
 
