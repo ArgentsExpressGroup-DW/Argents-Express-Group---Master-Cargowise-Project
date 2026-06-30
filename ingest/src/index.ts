@@ -13,22 +13,23 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from './config.js';
 import { logger } from './logger.js';
-import { ingestInvoicedFilesAudit } from './reports/invoiced-files-audit.js';
+import { ingestArAged } from './reports/ar-aged-outstanding.js';
 import { randomUUID } from 'crypto';
 
 // ─────────────────────────────────────────────────────────────
-// Report registry
-// Add new report handlers here as the migration expands.
+// Report registry — the 7 CargoWise daily reports in the
+// "Cargowise Daily File Dumps" SharePoint folder.
+// Handlers are added one at a time as each is built + validated.
 // ─────────────────────────────────────────────────────────────
 const REPORTS = [
-  {
-    name: 'invoiced-files-audit',
-    handler: ingestInvoicedFilesAudit,
-  },
-  // TODO: add next reports here, e.g.:
-  // { name: 'ar-invoice-detail',     handler: ingestArInvoiceDetail },
-  // { name: 'cost-detail',           handler: ingestCostDetail },
-  // { name: 'wip-accruals',          handler: ingestWipAccruals },
+  { name: 'ar-aged-outstanding', handler: ingestArAged },
+  // TODO (build + validate iteratively):
+  // { name: 'unbilled-shipments',  handler: ingestUnbilledShipments },
+  // { name: 'job-profit-summary',  handler: ingestJobProfitSummary },
+  // { name: 'job-status-summary',  handler: ingestJobStatusSummary },
+  // { name: 'shipment-profile',    handler: ingestShipmentProfile },
+  // { name: 'wip-accrued-costs',   handler: ingestWipAccruedCosts },
+  // { name: 'job-profit-detail',   handler: ingestJobProfitDetail },
 ];
 
 async function main() {
@@ -76,16 +77,4 @@ function parseReportDate(): string {
   if (flag !== -1 && process.argv[flag + 1]) {
     const d = process.argv[flag + 1];
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-      throw new Error(`Invalid --date format: "${d}". Expected YYYY-MM-DD.`);
-    }
-    return d;
-  }
-  return new Date().toISOString().slice(0, 10);
-}
-
-main().catch(err => {
-  logger.error('Unhandled error in ingest job', {
-    error: err instanceof Error ? err.message : String(err),
-  });
-  process.exit(1);
-});
+      throw new Error(`Invalid --
