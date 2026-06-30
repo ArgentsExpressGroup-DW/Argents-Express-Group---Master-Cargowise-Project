@@ -3,19 +3,42 @@
  *
  * Shared parsing helpers for CargoWise HHH report exports.
  *
- * These xlsx files are NOT clean tables: they have several title/subtitle
- * rows above the real column header, comma-formatted numbers, parenthesised
- * negatives, and trailing "*" flags. So instead of XLSX's object mode we read
- * the sheet as a raw matrix (array of arrays), locate the header row by its
- * labels, and map columns by index.
+ * These xlsx files are NOT clean tables: they may carry a #config/definition
+ * sheet, several title rows above the real header, comma-formatted numbers,
+ * parenthesised negatives, serial-number dates, and trailing "*" flags.
  */
 
 import * as XLSX from 'xlsx';
 
-/** Read the first worksheet as a raw matrix (array of row-arrays). */
+/**
+ * Pick the worksheet that holds the actual data.
+ * CargoWise "report template" exports put a #config/definition sheet first
+ * (plus Filter/GroupBys/Sort/Optional Templates sheets), with the rendered
+ * data on a separate sheet. Strategy: drop any sheet whose first cell is
+ * "#config", then choose the remaining sheet with the most rows.
+ */
+function pickDataSheet(wb: XLSX.WorkBook): string {
+  const rowCount = (sn: string) =>
+    (XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, blankrows: false }) as unknown[][]).length;
+  const isConfig = (sn: string) => {
+    const m = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, blankrows: false }) as unknown[][];
+    return String(m[0]?.[0] ?? '').trim().toLowerCase() === '#config';
+  };
+  const pool = wb.SheetNames.filter(sn => !isConfig(sn));
+  const candidates = pool.length ? pool : wb.SheetNames;
+  let best = candidates[0];
+  let bestRows = -1;
+  for (const sn of candidates) {
+    const n = rowCount(sn);
+    if (n > bestRows) { bestRows = n; best = sn; }
+  }
+  return best;
+}
+
+/** Read the data worksheet as a raw matrix (array of row-arrays). */
 export function readMatrix(buffer: Buffer): unknown[][] {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const sheet = wb.Sheets[pickDataSheet(wb)];
   return XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     defval: null,

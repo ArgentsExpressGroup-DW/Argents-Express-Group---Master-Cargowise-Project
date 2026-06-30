@@ -13,7 +13,6 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import * as XLSX from 'xlsx';
 import { downloadFile, findLatestFile } from '../graph.js';
 import { logger } from '../logger.js';
 import { config } from '../config.js';
@@ -45,21 +44,6 @@ export interface UnbilledRow {
 
 export function parseUnbilled(buffer: Buffer, reportDate: string): UnbilledRow[] {
   const m = readMatrix(buffer);
-  {
-    const wbD = XLSX.read(buffer, { type: 'buffer' });
-    logger.info('DIAG sheets', { names: wbD.SheetNames });
-    wbD.SheetNames.forEach((sn, si) => {
-      const mm = XLSX.utils.sheet_to_json(wbD.Sheets[sn], { header: 1, defval: null, blankrows: false }) as unknown[][];
-      let hdr = -1;
-      for (let i = 0; i < mm.length; i++) {
-        if ((mm[i] ?? []).some(c => /^[A-Z]{3,}\d{3,}$/.test(String(c ?? '')))) { hdr = i; break; }
-      }
-      logger.info('DIAG sheet ' + si, {
-        name: sn, rows: mm.length, firstDataRow: hdr,
-        around: mm.slice(Math.max(0, hdr - 2), hdr + 2).map(r => (r ?? []).map(c => String(c ?? '')).join(' | ')),
-      });
-    });
-  }
 
   const h = findHeaderRow(m, ['job ref', 'local client', 'consignee']);
   if (h < 0) throw new Error('Unbilled: header row (Job Ref/Local Client/Consignee) not found');
