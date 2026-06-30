@@ -15,6 +15,7 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { ingestArAged } from './reports/ar-aged-outstanding.js';
 import { ingestUnbilledShipments } from './reports/unbilled-shipments.js';
+import { ingestJobProfitSummary } from './reports/job-profit-summary.js';
 import { randomUUID } from 'crypto';
 
 // ─────────────────────────────────────────────────────────────
@@ -25,8 +26,8 @@ import { randomUUID } from 'crypto';
 const REPORTS = [
   { name: 'ar-aged-outstanding', handler: ingestArAged },
   { name: 'unbilled-shipments',  handler: ingestUnbilledShipments },
+  { name: 'job-profit-summary',  handler: ingestJobProfitSummary },
   // TODO (build + validate iteratively):
-  // { name: 'job-profit-summary',  handler: ingestJobProfitSummary },
   // { name: 'job-status-summary',  handler: ingestJobStatusSummary },
   // { name: 'shipment-profile',    handler: ingestShipmentProfile },
   // { name: 'wip-accrued-costs',   handler: ingestWipAccruedCosts },
