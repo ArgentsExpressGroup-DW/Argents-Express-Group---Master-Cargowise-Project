@@ -7,17 +7,17 @@ import { ingestJobProfitSummary } from './reports/job-profit-summary.js';
 import { ingestJobStatusSummary } from './reports/job-status-summary.js';
 import { ingestWipAccruedCosts } from './reports/wip-accrued-costs.js';
 import { ingestShipmentProfile } from './reports/shipment-profile.js';
-import { ingestProbe } from './reports/_probe.js';
+import { ingestJobProfitDetail } from './reports/job-profit-detail.js';
 import { randomUUID } from 'crypto';
 
 const REPORTS = [
-  { name: 'probe', handler: ingestProbe },
   { name: 'ar-aged-outstanding', handler: ingestArAged },
   { name: 'unbilled-shipments',  handler: ingestUnbilledShipments },
   { name: 'job-profit-summary',  handler: ingestJobProfitSummary },
   { name: 'job-status-summary',  handler: ingestJobStatusSummary },
   { name: 'wip-accrued-costs',   handler: ingestWipAccruedCosts },
   { name: 'shipment-profile',    handler: ingestShipmentProfile },
+  { name: 'job-profit-detail',   handler: ingestJobProfitDetail },
 ];
 
 async function main() {
