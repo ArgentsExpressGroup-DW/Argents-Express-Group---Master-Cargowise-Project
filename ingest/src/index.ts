@@ -6,6 +6,7 @@ import { ingestUnbilledShipments } from './reports/unbilled-shipments.js';
 import { ingestJobProfitSummary } from './reports/job-profit-summary.js';
 import { ingestJobStatusSummary } from './reports/job-status-summary.js';
 import { ingestWipAccruedCosts } from './reports/wip-accrued-costs.js';
+import { ingestShipmentProfile } from './reports/shipment-profile.js';
 import { ingestProbe } from './reports/_probe.js';
 import { randomUUID } from 'crypto';
 
@@ -16,6 +17,7 @@ const REPORTS = [
   { name: 'job-profit-summary',  handler: ingestJobProfitSummary },
   { name: 'job-status-summary',  handler: ingestJobStatusSummary },
   { name: 'wip-accrued-costs',   handler: ingestWipAccruedCosts },
+  { name: 'shipment-profile',    handler: ingestShipmentProfile },
 ];
 
 async function main() {
@@ -25,15 +27,8 @@ async function main() {
   const supabase = createClient(config.supabase.url, config.supabase.serviceRoleKey, { auth: { persistSession: false } });
   const results: Array<{ report: string; status: 'ok' | 'error'; error?: string }> = [];
   for (const { name, handler } of REPORTS) {
-    try {
-      logger.info(`Running report: ${name}`);
-      await handler(supabase, runId, reportDate);
-      results.push({ report: name, status: 'ok' });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.error(`Report failed: ${name}`, { error: message });
-      results.push({ report: name, status: 'error', error: message });
-    }
+    try { logger.info(`Running report: ${name}`); await handler(supabase, runId, reportDate); results.push({ report: name, status: 'ok' }); }
+    catch (err) { const message = err instanceof Error ? err.message : String(err); logger.error(`Report failed: ${name}`, { error: message }); results.push({ report: name, status: 'error', error: message }); }
   }
   const failed = results.filter(r => r.status === 'error');
   logger.info('Ingest job complete', { runId, results });
