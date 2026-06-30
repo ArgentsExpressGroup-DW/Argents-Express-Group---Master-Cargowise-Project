@@ -44,6 +44,7 @@ export interface UnbilledRow {
 
 export function parseUnbilled(buffer: Buffer, reportDate: string): UnbilledRow[] {
   const m = readMatrix(buffer);
+  logger.info('Unbilled raw rows (diag)', { rows: m.slice(0, 14).map((r, i) => i + ': ' + (r ?? []).map(c => String(c ?? '')).join(' | ')) });
 
   const h = findHeaderRow(m, ['job ref', 'local client', 'consignee']);
   if (h < 0) throw new Error('Unbilled: header row (Job Ref/Local Client/Consignee) not found');
