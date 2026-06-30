@@ -81,9 +81,11 @@ const MONTHS: Record<string, number> = {
 export function parseDate(raw: unknown): string | null {
   if (raw === null || raw === undefined || raw === '') return null;
   if (typeof raw === 'number') {
-    const d = XLSX.SSF.parse_date_code(raw);
-    if (!d) return null;
-    return `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
+    if (!Number.isFinite(raw) || raw <= 0) return null;
+    const days = Math.floor(raw);
+    const ms = Math.round((raw - days) * 86400000);
+    const dt = new Date(Date.UTC(1899, 11, 30) + days * 86400000 + ms);
+    return Number.isNaN(dt.getTime()) ? null : dt.toISOString().slice(0, 10);
   }
   const s = String(raw).trim();
   if (!s) return null;
