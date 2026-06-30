@@ -1,13 +1,5 @@
 /**
  * index.ts — Ingest job entry point
- *
- * Runs all registered report ingest handlers in sequence.
- * To add a new report: import its handler and add it to REPORTS.
- *
- * Usage:
- *   npm run dev                      # run all reports (today's date)
- *   npm run dev -- --date 2024-05-01 # run for a specific date
- *   DRY_RUN=true npm run dev         # parse without writing to Supabase
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -16,19 +8,15 @@ import { logger } from './logger.js';
 import { ingestArAged } from './reports/ar-aged-outstanding.js';
 import { ingestUnbilledShipments } from './reports/unbilled-shipments.js';
 import { ingestJobProfitSummary } from './reports/job-profit-summary.js';
+import { ingestJobStatusSummary } from './reports/job-status-summary.js';
 import { randomUUID } from 'crypto';
 
-// ─────────────────────────────────────────────────────────────
-// Report registry — the 7 CargoWise daily reports in the
-// "Cargowise Daily File Dumps" SharePoint folder.
-// Handlers are added one at a time as each is built + validated.
-// ─────────────────────────────────────────────────────────────
 const REPORTS = [
   { name: 'ar-aged-outstanding', handler: ingestArAged },
   { name: 'unbilled-shipments',  handler: ingestUnbilledShipments },
   { name: 'job-profit-summary',  handler: ingestJobProfitSummary },
+  { name: 'job-status-summary',  handler: ingestJobStatusSummary },
   // TODO (build + validate iteratively):
-  // { name: 'job-status-summary',  handler: ingestJobStatusSummary },
   // { name: 'shipment-profile',    handler: ingestShipmentProfile },
   // { name: 'wip-accrued-costs',   handler: ingestWipAccruedCosts },
   // { name: 'job-profit-detail',   handler: ingestJobProfitDetail },
@@ -39,20 +27,15 @@ async function main() {
   const reportDate = parseReportDate();
 
   logger.info('Ingest job starting', {
-    runId,
-    reportDate,
-    dryRun: config.dryRun,
-    reports: REPORTS.map(r => r.name),
+    runId, reportDate, dryRun: config.dryRun, reports: REPORTS.map(r => r.name),
   });
 
   const supabase = createClient(
-    config.supabase.url,
-    config.supabase.serviceRoleKey,
+    config.supabase.url, config.supabase.serviceRoleKey,
     { auth: { persistSession: false } },
   );
 
   const results: Array<{ report: string; status: 'ok' | 'error'; error?: string }> = [];
-
   for (const { name, handler } of REPORTS) {
     try {
       logger.info(`Running report: ${name}`);
@@ -67,7 +50,6 @@ async function main() {
 
   const failed = results.filter(r => r.status === 'error');
   logger.info('Ingest job complete', { runId, results });
-
   if (failed.length > 0) {
     logger.error('One or more reports failed', { failed });
     process.exit(1);

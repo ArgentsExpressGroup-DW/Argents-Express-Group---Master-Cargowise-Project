@@ -97,6 +97,15 @@ export function parseDate(raw: unknown): string | null {
     if (yr < 100) yr += 2000;
     if (mon) return `${yr}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
+  const m2 = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s);
+  if (m2) {
+    const day = Number(m2[1]);
+    const mon = Number(m2[2]);
+    const yr = Number(m2[3]);
+    if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31) {
+      return `${yr}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
