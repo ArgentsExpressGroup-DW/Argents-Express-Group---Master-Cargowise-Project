@@ -77,4 +77,16 @@ function parseReportDate(): string {
   if (flag !== -1 && process.argv[flag + 1]) {
     const d = process.argv[flag + 1];
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-      throw new Error(`Invalid --
+      throw new Error(`Invalid --date format: "${d}". Expected YYYY-MM-DD.`);
+    }
+    return d;
+  }
+  return new Date().toISOString().slice(0, 10);
+}
+
+main().catch(err => {
+  logger.error('Unhandled error in ingest job', {
+    error: err instanceof Error ? err.message : String(err),
+  });
+  process.exit(1);
+});
