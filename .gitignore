@@ -1,0 +1,21 @@
+# ── Secrets — never commit ────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ── Node ──────────────────────────────────────────────────────
+node_modules/
+dist/
+*.log
+npm-debug.log*
+
+# ── OS / editor ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── This bootstrap script holds no secrets, but keep it local ──
+# (safe to commit; listed here only as a reminder it's a one-time helper)

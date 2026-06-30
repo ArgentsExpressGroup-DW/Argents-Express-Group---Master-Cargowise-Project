@@ -1,0 +1,76 @@
+name: Supabase Ingest Job
+
+on:
+  # Run every 3 hours to stay in sync with the Power Automate flow
+  # that drops CargoWise files onto SharePoint (~3x/day).
+  schedule:
+    - cron: '0 */3 * * *'
+
+  # Allow manual trigger from the GitHub Actions UI or via API.
+  # Supports passing a specific report date for backfills.
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: 'Report date override (YYYY-MM-DD). Defaults to today.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run — parse without writing to Supabase'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  ingest:
+    name: Run ingest job
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ingest/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ingest
+        run: npm ci
+
+      - name: Run ingest job
+        working-directory: ingest
+        env:
+          # Azure / Graph API credentials
+          AZURE_TENANT_ID:            ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID:            ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET:        ${{ secrets.AZURE_CLIENT_SECRET }}
+          # SharePoint location
+          SHAREPOINT_HOST:            ${{ secrets.SHAREPOINT_HOST }}
+          SHAREPOINT_SITE_PATH:       ${{ secrets.SHAREPOINT_SITE_PATH }}
+          SHAREPOINT_DRIVE_NAME:      ${{ secrets.SHAREPOINT_DRIVE_NAME }}
+          SHAREPOINT_REPORTS_FOLDER:  ${{ secrets.SHAREPOINT_REPORTS_FOLDER }}
+          # Supabase (service-role key — write access)
+          SUPABASE_URL:               ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY:  ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Runtime flags
+          LOG_LEVEL:   info
+          DRY_RUN:     ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          DATE_ARG=""
+          if [ -n "${{ github.event.inputs.report_date }}" ]; then
+            DATE_ARG="--date ${{ github.event.inputs.report_date }}"
+          fi
+          npm run dev -- $DATE_ARG
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingest-logs-${{ github.run_id }}
+          path: ingest/*.log
+          if-no-files-found: ignore
+          retention-days: 7
