@@ -1,3 +1,7 @@
+/**
+ * index.ts — Ingest job entry point
+ */
+
 import { createClient } from '@supabase/supabase-js';
 import { config } from './config.js';
 import { logger } from './logger.js';
@@ -8,6 +12,7 @@ import { ingestJobStatusSummary } from './reports/job-status-summary.js';
 import { ingestWipAccruedCosts } from './reports/wip-accrued-costs.js';
 import { ingestShipmentProfile } from './reports/shipment-profile.js';
 import { ingestJobProfitDetail } from './reports/job-profit-detail.js';
+import { rebuildCore } from './transform.js';
 import { randomUUID } from 'crypto';
 
 const REPORTS = [
@@ -33,6 +38,11 @@ async function main() {
   const failed = results.filter(r => r.status === 'error');
   logger.info('Ingest job complete', { runId, results });
   if (failed.length > 0) { logger.error('One or more reports failed', { failed }); process.exit(1); }
+
+  if (!config.dryRun) {
+    try { await rebuildCore(supabase, reportDate); }
+    catch (err) { logger.error('Core transform failed', { error: err instanceof Error ? err.message : String(err) }); process.exit(1); }
+  }
 }
 
 function parseReportDate(): string {
